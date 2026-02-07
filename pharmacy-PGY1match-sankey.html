@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacy PGY1 Residency Match 2025 - Sankey Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        #chart {
+            overflow-x: auto;
+        }
+        
+        .node rect {
+            cursor: move;
+            fill-opacity: 0.9;
+            stroke: #000;
+            stroke-width: 0.5px;
+        }
+        
+        .node rect:hover {
+            fill-opacity: 1;
+        }
+        
+        .node text {
+            pointer-events: none;
+            font-size: 11px;
+            fill: #333;
+        }
+        
+        .link {
+            fill: none;
+            stroke: #000;
+            stroke-opacity: 0.2;
+        }
+        
+        .link:hover {
+            stroke-opacity: 0.5;
+        }
+        
+        .tooltip {
+            position: absolute;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            border-radius: 4px;
+            pointer-events: none;
+            font-size: 13px;
+            line-height: 1.5;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .state-detail {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 2000;
+        }
+        
+        .state-detail h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .state-detail .close-btn {
+            float: right;
+            cursor: pointer;
+            font-size: 24px;
+            color: #95a5a6;
+            line-height: 1;
+        }
+        
+        .state-detail .close-btn:hover {
+            color: #e74c3c;
+        }
+        
+        .school-item {
+            padding: 10px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .school-name {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .school-stats {
+            font-size: 12px;
+            color: #7f8c8d;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .legend {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pharmacy PGY1 Residency Match Flow - 2025</h1>
+        <div class="subtitle">American Society of Health-System Pharmacists Resident Matching Program</div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value">5,681</div>
+                <div class="stat-label">Registered Applicants</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">5,023</div>
+                <div class="stat-label">Active with List</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">4,063</div>
+                <div class="stat-label">Matched to PGY1</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">4,259</div>
+                <div class="stat-label">Total Positions Offered</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">96.1%</div>
+                <div class="stat-label">Position Fill Rate</div>
+            </div>
+        </div>
+        
+        <div id="chart"></div>
+        <div class="tooltip"></div>
+        <div class="state-detail" id="stateDetail">
+            <span class="close-btn" onclick="document.getElementById('stateDetail').style.display='none'">&times;</span>
+            <div id="stateDetailContent"></div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #34495e;"></div>
+                <span>States (click to see schools, drag to reposition)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2ecc71;"></div>
+                <span>Matched/Filled</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e74c3c;"></div>
+                <span>Unmatched/Unfilled</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f39c12;"></div>
+                <span>Withdrew from Match</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #9b59b6;"></div>
+                <span>Position Types</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Complete school and state data from ASHP 2025 Match
+        const schoolData = [
+            {state: "AL", city: "Auburn", school: "Auburn University", registered: 65, active: 61, matched: 56, unmatched: 5},
+            {state: "AL", city: "Birmingham", school: "Samford University", registered: 33, active: 30, matched: 25, unmatched: 5},
+            {state: "AR", city: "Little Rock", school: "University of Arkansas", registered: 33, active: 27, matched: 22, unmatched: 5},
+            {state: "AR", city: "Searcy", school: "Harding University", registered: 10, active: 10, matched: 9, unmatched: 1},
+            {state: "AZ", city: "Glendale", school: "Midwestern University-Glendale", registered: 43, active: 38, matched: 34, unmatched: 4},
+            {state: "AZ", city: "Tucson", school: "University of Arizona", registered: 58, active: 52, matched: 44, unmatched: 8},
+            {state: "CA", city: "Claremont", school: "Keck Graduate Institute", registered: 29, active: 25, matched: 14, unmatched: 11},
+            {state: "CA", city: "Clovis", school: "California Health Sciences Univ", registered: 2, active: 2, matched: 0, unmatched: 2},
+            {state: "CA", city: "Elk Grove", school: "California Northstate University", registered: 16, active: 12, matched: 7, unmatched: 5},
+            {state: "CA", city: "Fullerton", school: "Marshall B. Ketchum University", registered: 12, active: 9, matched: 6, unmatched: 3},
+            {state: "CA", city: "Irvine", school: "Chapman University", registered: 37, active: 33, matched: 25, unmatched: 8},
+            {state: "CA", city: "Irvine", school: "UC Irvine", registered: 25, active: 19, matched: 15, unmatched: 4},
+            {state: "CA", city: "La Jolla", school: "UC San Diego", registered: 50, active: 48, matched: 42, unmatched: 6},
+            {state: "CA", city: "Loma Linda", school: "Loma Linda University", registered: 29, active: 22, matched: 16, unmatched: 6},
+            {state: "CA", city: "Los Angeles", school: "USC", registered: 112, active: 95, matched: 65, unmatched: 30},
+            {state: "CA", city: "Los Angeles", school: "West Coast University", registered: 11, active: 8, matched: 3, unmatched: 5},
+            {state: "CA", city: "Pomona", school: "Western University", registered: 62, active: 48, matched: 34, unmatched: 14},
+            {state: "CA", city: "San Francisco", school: "UCSF", registered: 98, active: 90, matched: 72, unmatched: 18},
+            {state: "CA", city: "Signal Hill", school: "American University of Health Sciences", registered: 4, active: 4, matched: 1, unmatched: 3},
+            {state: "CA", city: "Stockton", school: "University of The Pacific", registered: 132, active: 115, matched: 74, unmatched: 41},
+            {state: "CA", city: "Vallejo", school: "Touro University - California", registered: 34, active: 32, matched: 17, unmatched: 15},
+            {state: "CO", city: "Aurora", school: "University of Colorado", registered: 50, active: 50, matched: 38, unmatched: 12},
+            {state: "CO", city: "Denver", school: "Regis University", registered: 23, active: 17, matched: 15, unmatched: 2},
+            {state: "CT", city: "Hartford", school: "University of St. Joseph", registered: 20, active: 18, matched: 13, unmatched: 5},
+            {state: "CT", city: "Storrs", school: "University of Connecticut", registered: 48, active: 45, matched: 35, unmatched: 10},
+            {state: "DC", city: "Washington", school: "Howard University", registered: 31, active: 28, matched: 20, unmatched: 8},
+            {state: "FL", city: "Bradenton", school: "Lake Erie College - Bradenton", registered: 31, active: 28, matched: 19, unmatched: 9},
+            {state: "FL", city: "Fort Lauderdale", school: "Nova Southeastern University", registered: 81, active: 72, matched: 48, unmatched: 24},
+            {state: "FL", city: "Gainesville", school: "University of Florida", registered: 123, active: 110, matched: 100, unmatched: 10},
+            {state: "FL", city: "Miami", school: "Larkin University", registered: 2, active: 2, matched: 1, unmatched: 1},
+            {state: "FL", city: "Tallahassee", school: "Florida A & M University", registered: 39, active: 30, matched: 16, unmatched: 14},
+            {state: "FL", city: "Tampa", school: "University of South Florida", registered: 46, active: 42, matched: 39, unmatched: 3},
+            {state: "FL", city: "West Palm Beach", school: "Palm Beach Atlantic University", registered: 18, active: 17, matched: 14, unmatched: 3},
+            {state: "GA", city: "Athens", school: "University of Georgia", registered: 72, active: 67, matched: 60, unmatched: 7},
+            {state: "GA", city: "Atlanta", school: "Mercer University", registered: 42, active: 37, matched: 28, unmatched: 9},
+            {state: "GA", city: "Savannah", school: "South University", registered: 32, active: 26, matched: 16, unmatched: 10},
+            {state: "GA", city: "Suwanee", school: "PCOM Georgia", registered: 19, active: 13, matched: 8, unmatched: 5},
+            {state: "HI", city: "Hilo", school: "University of Hawaii at Hilo", registered: 16, active: 15, matched: 14, unmatched: 1},
+            {state: "IA", city: "Des Moines", school: "Drake University", registered: 38, active: 32, matched: 29, unmatched: 3},
+            {state: "IA", city: "Iowa City", school: "University of Iowa", registered: 56, active: 51, matched: 48, unmatched: 3},
+            {state: "ID", city: "Pocatello", school: "Idaho State University", registered: 32, active: 29, matched: 23, unmatched: 6},
+            {state: "IL", city: "Chicago", school: "Chicago State University", registered: 2, active: 2, matched: 0, unmatched: 2},
+            {state: "IL", city: "Chicago", school: "University of Illinois", registered: 93, active: 78, matched: 70, unmatched: 8},
+            {state: "IL", city: "Downers Grove", school: "Midwestern University-Chicago", registered: 29, active: 27, matched: 17, unmatched: 10},
+            {state: "IL", city: "Edwardsville", school: "Southern Illinois University", registered: 34, active: 32, matched: 31, unmatched: 1},
+            {state: "IL", city: "North Chicago", school: "Rosalind Franklin University", registered: 20, active: 16, matched: 14, unmatched: 2},
+            {state: "IL", city: "Schaumburg", school: "Roosevelt University", registered: 18, active: 16, matched: 12, unmatched: 4},
+            {state: "IN", city: "Fort Wayne", school: "Manchester University", registered: 18, active: 16, matched: 9, unmatched: 7},
+            {state: "IN", city: "Indianapolis", school: "Butler University", registered: 39, active: 36, matched: 34, unmatched: 2},
+            {state: "IN", city: "West Lafayette", school: "Purdue University", registered: 82, active: 77, matched: 74, unmatched: 3},
+            {state: "KS", city: "Lawrence", school: "University of Kansas", registered: 49, active: 45, matched: 41, unmatched: 4},
+            {state: "KY", city: "Lexington", school: "University of Kentucky", registered: 76, active: 71, matched: 64, unmatched: 7},
+            {state: "KY", city: "Louisville", school: "Sullivan University", registered: 15, active: 12, matched: 9, unmatched: 3},
+            {state: "LA", city: "Monroe", school: "University of Louisiana - Monroe", registered: 23, active: 21, matched: 19, unmatched: 2},
+            {state: "LA", city: "New Orleans", school: "Xavier University of Louisiana", registered: 40, active: 37, matched: 29, unmatched: 8},
+            {state: "MA", city: "Boston", school: "MCPHS University - Boston", registered: 53, active: 42, matched: 30, unmatched: 12},
+            {state: "MA", city: "Boston", school: "Northeastern University", registered: 45, active: 39, matched: 33, unmatched: 6},
+            {state: "MA", city: "Springfield", school: "Western New England University", registered: 17, active: 14, matched: 13, unmatched: 1},
+            {state: "MA", city: "Worcester", school: "MCPHS University-Worcester", registered: 29, active: 21, matched: 14, unmatched: 7},
+            {state: "MD", city: "Baltimore", school: "Notre Dame of Maryland", registered: 19, active: 15, matched: 8, unmatched: 7},
+            {state: "MD", city: "Baltimore", school: "University of Maryland", registered: 46, active: 40, matched: 31, unmatched: 9},
+            {state: "MD", city: "Princess Anne", school: "UMES", registered: 8, active: 7, matched: 5, unmatched: 2},
+            {state: "ME", city: "Bangor", school: "Husson University", registered: 4, active: 4, matched: 3, unmatched: 1},
+            {state: "ME", city: "Portland", school: "University of New England", registered: 14, active: 12, matched: 10, unmatched: 2},
+            {state: "MI", city: "Ann Arbor", school: "University of Michigan", registered: 55, active: 51, matched: 47, unmatched: 4},
+            {state: "MI", city: "Big Rapids", school: "Ferris State University", registered: 61, active: 52, matched: 42, unmatched: 10},
+            {state: "MI", city: "Detroit", school: "Wayne State University", registered: 44, active: 37, matched: 30, unmatched: 7},
+            {state: "MN", city: "Minneapolis", school: "University of Minnesota", registered: 89, active: 76, matched: 64, unmatched: 12},
+            {state: "MO", city: "Kansas City", school: "University of Missouri-KC", registered: 43, active: 36, matched: 33, unmatched: 3},
+            {state: "MO", city: "St. Louis", school: "St. Louis College of Pharmacy", registered: 40, active: 33, matched: 30, unmatched: 3},
+            {state: "MS", city: "Biloxi", school: "William Carey University", registered: 13, active: 11, matched: 9, unmatched: 2},
+            {state: "MS", city: "University", school: "University of Mississippi", registered: 54, active: 51, matched: 47, unmatched: 4},
+            {state: "MT", city: "Missoula", school: "University of Montana", registered: 25, active: 23, matched: 22, unmatched: 1},
+            {state: "NC", city: "Buies Creek", school: "Campbell University", registered: 36, active: 31, matched: 25, unmatched: 6},
+            {state: "NC", city: "Chapel Hill", school: "UNC Chapel Hill", registered: 90, active: 85, matched: 78, unmatched: 7},
+            {state: "NC", city: "High Point", school: "High Point University", registered: 24, active: 21, matched: 18, unmatched: 3},
+            {state: "NC", city: "Wingate", school: "Wingate University", registered: 29, active: 28, matched: 22, unmatched: 6},
+            {state: "ND", city: "Fargo", school: "North Dakota State University", registered: 28, active: 26, matched: 25, unmatched: 1},
+            {state: "NE", city: "Omaha", school: "Creighton University", registered: 31, active: 27, matched: 20, unmatched: 7},
+            {state: "NE", city: "Omaha", school: "University of Nebraska", registered: 20, active: 20, matched: 18, unmatched: 2},
+            {state: "NH", city: "Manchester", school: "MCPHS University-Manchester", registered: 3, active: 3, matched: 2, unmatched: 1},
+            {state: "NJ", city: "Florham Park", school: "Fairleigh Dickinson University", registered: 23, active: 20, matched: 9, unmatched: 11},
+            {state: "NJ", city: "Piscataway", school: "Rutgers University", registered: 77, active: 67, matched: 52, unmatched: 15},
+            {state: "NM", city: "Albuquerque", school: "University of New Mexico", registered: 21, active: 19, matched: 18, unmatched: 1},
+            {state: "NV", city: "Henderson", school: "Roseman University", registered: 52, active: 45, matched: 35, unmatched: 10},
+            {state: "NY", city: "Albany", school: "Albany College of Pharmacy", registered: 57, active: 43, matched: 28, unmatched: 15},
+            {state: "NY", city: "Brooklyn", school: "Long Island University", registered: 48, active: 38, matched: 16, unmatched: 22},
+            {state: "NY", city: "Buffalo", school: "D'Youville College", registered: 33, active: 29, matched: 17, unmatched: 12},
+            {state: "NY", city: "Buffalo", school: "SUNY Buffalo", registered: 51, active: 46, matched: 36, unmatched: 10},
+            {state: "NY", city: "Johnson City", school: "Binghamton University", registered: 39, active: 36, matched: 27, unmatched: 9},
+            {state: "NY", city: "New York", school: "Touro College of Pharmacy", registered: 26, active: 22, matched: 14, unmatched: 8},
+            {state: "NY", city: "Queens", school: "St. John's University", registered: 82, active: 71, matched: 54, unmatched: 17},
+            {state: "NY", city: "Rochester", school: "St. John Fisher College", registered: 38, active: 35, matched: 27, unmatched: 8},
+            {state: "OH", city: "Ada", school: "Ohio Northern University", registered: 72, active: 69, matched: 64, unmatched: 5},
+            {state: "OH", city: "Cedarville", school: "Cedarville University", registered: 24, active: 24, matched: 21, unmatched: 3},
+            {state: "OH", city: "Cincinnati", school: "University of Cincinnati", registered: 30, active: 28, matched: 25, unmatched: 3},
+            {state: "OH", city: "Columbus", school: "Ohio State University", registered: 66, active: 62, matched: 56, unmatched: 6},
+            {state: "OH", city: "Findlay", school: "University of Findlay", registered: 26, active: 20, matched: 16, unmatched: 4},
+            {state: "OH", city: "Rootstown", school: "Northeast Ohio Medical University", registered: 29, active: 26, matched: 21, unmatched: 5},
+            {state: "OH", city: "Toledo", school: "University of Toledo", registered: 59, active: 56, matched: 54, unmatched: 2},
+            {state: "OK", city: "Oklahoma City", school: "University of Oklahoma", registered: 17, active: 17, matched: 15, unmatched: 2},
+            {state: "OK", city: "Weatherford", school: "Southwestern Oklahoma State", registered: 25, active: 18, matched: 14, unmatched: 4},
+            {state: "OR", city: "Corvallis", school: "Oregon State University", registered: 45, active: 43, matched: 36, unmatched: 7},
+            {state: "OR", city: "Hillsboro", school: "Pacific University", registered: 29, active: 23, matched: 17, unmatched: 6},
+            {state: "PA", city: "Erie", school: "Lake Erie College - Erie", registered: 51, active: 37, matched: 25, unmatched: 12},
+            {state: "PA", city: "Philadelphia", school: "Saint Joseph's University", registered: 58, active: 50, matched: 37, unmatched: 13},
+            {state: "PA", city: "Philadelphia", school: "Temple University", registered: 40, active: 35, matched: 29, unmatched: 6},
+            {state: "PA", city: "Philadelphia", school: "Thomas Jefferson University", registered: 21, active: 20, matched: 15, unmatched: 5},
+            {state: "PA", city: "Pittsburgh", school: "Duquesne University", registered: 48, active: 46, matched: 38, unmatched: 8},
+            {state: "PA", city: "Pittsburgh", school: "University of Pittsburgh", registered: 58, active: 54, matched: 49, unmatched: 5},
+            {state: "PA", city: "Wilkes-Barre", school: "Wilkes University", registered: 30, active: 27, matched: 24, unmatched: 3},
+            {state: "PR", city: "San Juan", school: "University of Puerto Rico", registered: 15, active: 14, matched: 6, unmatched: 8},
+            {state: "RI", city: "Kingston", school: "University of Rhode Island", registered: 75, active: 70, matched: 64, unmatched: 6},
+            {state: "SC", city: "Charleston", school: "MUSC", registered: 47, active: 38, matched: 33, unmatched: 5},
+            {state: "SC", city: "Charleston", school: "South Carolina College of Pharmacy", registered: 1, active: 1, matched: 1, unmatched: 0},
+            {state: "SC", city: "Clinton", school: "Presbyterian College", registered: 10, active: 8, matched: 6, unmatched: 2},
+            {state: "SC", city: "Columbia", school: "University of South Carolina", registered: 54, active: 53, matched: 43, unmatched: 10},
+            {state: "SD", city: "Brookings", school: "South Dakota State University", registered: 32, active: 29, matched: 27, unmatched: 2},
+            {state: "TN", city: "Jackson", school: "Union University", registered: 14, active: 12, matched: 12, unmatched: 0},
+            {state: "TN", city: "Johnson City", school: "East Tennessee State University", registered: 19, active: 18, matched: 16, unmatched: 2},
+            {state: "TN", city: "Knoxville", school: "South College", registered: 13, active: 10, matched: 6, unmatched: 4},
+            {state: "TN", city: "Memphis", school: "University of Tennessee", registered: 77, active: 72, matched: 67, unmatched: 5},
+            {state: "TN", city: "Nashville", school: "Belmont University", registered: 29, active: 28, matched: 24, unmatched: 4},
+            {state: "TN", city: "Nashville", school: "Lipscomb University", registered: 25, active: 20, matched: 19, unmatched: 1},
+            {state: "TX", city: "Amarillo", school: "Texas Tech University", registered: 43, active: 36, matched: 27, unmatched: 9},
+            {state: "TX", city: "Austin", school: "University of Texas - Austin", registered: 60, active: 53, matched: 49, unmatched: 4},
+            {state: "TX", city: "El Paso", school: "UT El Paso", registered: 24, active: 19, matched: 14, unmatched: 5},
+            {state: "TX", city: "Fort Worth", school: "University of North Texas", registered: 41, active: 36, matched: 29, unmatched: 7},
+            {state: "TX", city: "Houston", school: "Texas Southern University", registered: 22, active: 18, matched: 9, unmatched: 9},
+            {state: "TX", city: "Houston", school: "University of Houston", registered: 56, active: 47, matched: 37, unmatched: 10},
+            {state: "TX", city: "Kingsville", school: "Texas A & M University", registered: 45, active: 39, matched: 29, unmatched: 10},
+            {state: "TX", city: "San Antonio", school: "University of Incarnate Word", registered: 26, active: 23, matched: 18, unmatched: 5},
+            {state: "TX", city: "Tyler", school: "UT Tyler", registered: 7, active: 6, matched: 6, unmatched: 0},
+            {state: "UT", city: "Salt Lake City", school: "University of Utah", registered: 28, active: 27, matched: 21, unmatched: 6},
+            {state: "VA", city: "Hampton", school: "Hampton University", registered: 0, active: 0, matched: 0, unmatched: 0},
+            {state: "VA", city: "Oakwood", school: "Appalachian College of Pharmacy", registered: 5, active: 2, matched: 1, unmatched: 1},
+            {state: "VA", city: "Richmond", school: "Virginia Commonwealth University", registered: 59, active: 56, matched: 50, unmatched: 6},
+            {state: "VA", city: "Winchester", school: "Shenandoah University", registered: 29, active: 24, matched: 15, unmatched: 9},
+            {state: "WA", city: "Seattle", school: "University of Washington", registered: 61, active: 57, matched: 49, unmatched: 8},
+            {state: "WA", city: "Spokane", school: "Washington State University", registered: 44, active: 37, matched: 25, unmatched: 12},
+            {state: "WI", city: "Madison", school: "University of Wisconsin", registered: 89, active: 83, matched: 83, unmatched: 0},
+            {state: "WI", city: "Mequon", school: "Concordia University", registered: 28, active: 24, matched: 21, unmatched: 3},
+            {state: "WI", city: "Milwaukee", school: "Medical College of Wisconsin", registered: 32, active: 31, matched: 28, unmatched: 3},
+            {state: "WV", city: "Charleston", school: "University of Charleston", registered: 16, active: 14, matched: 13, unmatched: 1},
+            {state: "WV", city: "Huntington", school: "Marshall University", registered: 14, active: 12, matched: 9, unmatched: 3},
+            {state: "WV", city: "Morgantown", school: "West Virginia University", registered: 32, active: 31, matched: 26, unmatched: 5},
+            {state: "WY", city: "Laramie", school: "University of Wyoming", registered: 11, active: 11, matched: 11, unmatched: 0},
+            {state: "OTHER", city: "Lebanon", school: "Lebanese American University", registered: 18, active: 12, matched: 6, unmatched: 6},
+            {state: "OTHER", city: "Foreign", school: "Foreign School (Non-ACPE)", registered: 33, active: 26, matched: 7, unmatched: 19}
+        ];
+
+        // Aggregate by state
+        const stateAggregates = {};
+        schoolData.forEach(school => {
+            if (!stateAggregates[school.state]) {
+                stateAggregates[school.state] = {
+                    registered: 0,
+                    active: 0,
+                    matched: 0,
+                    unmatched: 0,
+                    schools: []
+                };
+            }
+            stateAggregates[school.state].registered += school.registered;
+            stateAggregates[school.state].active += school.active;
+            stateAggregates[school.state].matched += school.matched;
+            stateAggregates[school.state].unmatched += school.unmatched;
+            stateAggregates[school.state].schools.push(school);
+        });
+
+        // Census regions and divisions order
+        const regionOrder = [
+            // Region 1: Northeast
+            // Division 1: New England
+            'CT', 'ME', 'MA', 'NH', 'RI', 'VT',
+            // Division 2: Middle Atlantic
+            'NJ', 'NY', 'PA',
+            
+            // Region 2: Midwest
+            // Division 3: East North Central
+            'IL', 'IN', 'MI', 'OH', 'WI',
+            // Division 4: West North Central
+            'IA', 'KS', 'MN', 'MO', 'NE', 'ND', 'SD',
+            
+            // Region 3: South
+            // Division 5: South Atlantic
+            'DE', 'DC', 'FL', 'GA', 'MD', 'NC', 'SC', 'VA', 'WV',
+            // Division 6: East South Central
+            'AL', 'KY', 'MS', 'TN',
+            // Division 7: West South Central
+            'AR', 'LA', 'OK', 'TX',
+            
+            // Region 4: West
+            // Division 8: Mountain
+            'AZ', 'CO', 'ID', 'MT', 'NV', 'NM', 'UT', 'WY',
+            // Division 9: Pacific
+            'CA', 'OR', 'WA',
+            
+            // Territories and Other
+            'HI', 'PR', 'OTHER'
+        ];
+
+        // Build nodes and links dynamically
+        let nodes = [];
+        let links = [];
+        let nodeId = 0;
+        
+        // Create state nodes (column 0) - sorted by region
+        const stateNodes = {};
+        regionOrder.forEach(state => {
+            if (stateAggregates[state]) {
+                stateNodes[state] = nodeId;
+                nodes.push({
+                    name: state,
+                    id: nodeId,
+                    layer: 0,
+                    registered: stateAggregates[state].registered,
+                    active: stateAggregates[state].active,
+                    matched: stateAggregates[state].matched,
+                    unmatched: stateAggregates[state].unmatched
+                });
+                nodeId++;
+            }
+        });
+        
+        // Add aggregate nodes (columns 1-5)
+        const aggregateStartId = nodeId;
+        const aggregateNodes = {
+            composite_withdrew: nodeId++,
+            composite_matched: nodeId++,
+            composite_unmatched: nodeId++,
+            positions: nodeId++,
+            filled: nodeId++,
+            unfilled: nodeId++,
+            // Position types - filled
+            pgy1_general: nodeId++,
+            pgy1_community: nodeId++,
+            pgy1_managed: nodeId++,
+            pgy1_admin: nodeId++,
+            pgy1_leadership: nodeId++,
+            pgy1_other: nodeId++,
+            // Position types - unfilled
+            pgy1_general_unfilled: nodeId++,
+            pgy1_community_unfilled: nodeId++,
+            pgy1_other_unfilled: nodeId++
+        };
+        
+        nodes.push(
+            // Column 1: Composite bar showing all three outcomes
+            { name: "Withdrew", id: aggregateNodes.composite_withdrew, layer: 1 },
+            { name: "Active in Match, Matched to PGY1", id: aggregateNodes.composite_matched, layer: 1 },
+            { name: "Active & Unmatched", id: aggregateNodes.composite_unmatched, layer: 1 },
+            // Column 2: Positions (removed separate Matched to PGY1 node)
+            { name: "PGY1 Positions", id: aggregateNodes.positions, layer: 2 },
+            { name: "Filled", id: aggregateNodes.filled, layer: 3 },
+            { name: "Unfilled", id: aggregateNodes.unfilled, layer: 3 },
+            // Position types
+            { name: "PGY1 General (3,522)", id: aggregateNodes.pgy1_general, layer: 4 },
+            { name: "PGY1 Community (309)", id: aggregateNodes.pgy1_community, layer: 4 },
+            { name: "PGY1 Managed Care (68)", id: aggregateNodes.pgy1_managed, layer: 4 },
+            { name: "PGY1&2 Health Sys Admin (94)", id: aggregateNodes.pgy1_admin, layer: 4 },
+            { name: "PGY1&2 Leadership (30)", id: aggregateNodes.pgy1_leadership, layer: 4 },
+            { name: "Other Programs (40)", id: aggregateNodes.pgy1_other, layer: 4 },
+            { name: "General Unfilled (105)", id: aggregateNodes.pgy1_general_unfilled, layer: 4 },
+            { name: "Community Unfilled (46)", id: aggregateNodes.pgy1_community_unfilled, layer: 4 },
+            { name: "Other Unfilled (13)", id: aggregateNodes.pgy1_other_unfilled, layer: 4 }
+        );
+        
+        // Create links from states to the composite bar (3 sections)
+        Object.keys(stateNodes).forEach(state => {
+            const stateData = stateAggregates[state];
+            const withdrew = stateData.registered - stateData.active;
+            
+            // Flow to composite withdrew section (orange to match node)
+            if (withdrew > 0) {
+                links.push({
+                    source: stateNodes[state],
+                    target: aggregateNodes.composite_withdrew,
+                    value: withdrew,
+                    color: '#f39c12' // Orange to match Withdrew node
+                });
+            }
+            
+            // Flow to composite matched section (green to match node)
+            if (stateData.matched > 0) {
+                links.push({
+                    source: stateNodes[state],
+                    target: aggregateNodes.composite_matched,
+                    value: stateData.matched,
+                    color: '#2ecc71' // Green to match Active in Match, Matched to PGY1 node
+                });
+            }
+            
+            // Flow to composite unmatched section (red to match node)
+            if (stateData.unmatched > 0) {
+                links.push({
+                    source: stateNodes[state],
+                    target: aggregateNodes.composite_unmatched,
+                    value: stateData.unmatched,
+                    color: '#e74c3c' // Red to match Active & Unmatched node
+                });
+            }
+        });
+        
+        // Links from composite bar to final outcomes
+        links.push(
+            // From composite matched directly to positions (consolidated node)
+            { source: aggregateNodes.composite_matched, target: aggregateNodes.positions, value: 4063 },
+            // Continue the flow from positions
+            { source: aggregateNodes.positions, target: aggregateNodes.filled, value: 4063 },
+            { source: aggregateNodes.positions, target: aggregateNodes.unfilled, value: 164 },
+            // Filled to position types
+            { source: aggregateNodes.filled, target: aggregateNodes.pgy1_general, value: 3522 },
+            { source: aggregateNodes.filled, target: aggregateNodes.pgy1_community, value: 309 },
+            { source: aggregateNodes.filled, target: aggregateNodes.pgy1_managed, value: 68 },
+            { source: aggregateNodes.filled, target: aggregateNodes.pgy1_admin, value: 94 },
+            { source: aggregateNodes.filled, target: aggregateNodes.pgy1_leadership, value: 30 },
+            { source: aggregateNodes.filled, target: aggregateNodes.pgy1_other, value: 40 },
+            // Unfilled to position types
+            { source: aggregateNodes.unfilled, target: aggregateNodes.pgy1_general_unfilled, value: 105 },
+            { source: aggregateNodes.unfilled, target: aggregateNodes.pgy1_community_unfilled, value: 46 },
+            { source: aggregateNodes.unfilled, target: aggregateNodes.pgy1_other_unfilled, value: 13 }
+        );
+
+        const data = { nodes, links };
+
+        // Dynamic color assignment
+        const getNodeColor = (node) => {
+            // State nodes (layer 0)
+            if (node.layer === 0) return "#34495e";
+            
+            // Based on node name
+            if (node.name === "Withdrew") return "#f39c12";
+            if (node.name === "Active in Match, Matched to PGY1") return "#2ecc71";
+            if (node.name === "Active & Unmatched") return "#e74c3c";
+            if (node.name === "PGY1 Positions") return "#95a5a6";
+            if (node.name === "Filled") return "#2ecc71";
+            if (node.name === "Unfilled") return "#e74c3c";
+            
+            // Position types
+            if (node.name.includes("Unfilled")) return "#e74c3c";
+            if (node.layer === 4) return "#9b59b6";
+            
+            return "#95a5a6";
+        };
+
+        // Set up dimensions
+        const margin = { top: 10, right: 250, bottom: 10, left: 100 };
+        const width = 1600 - margin.left - margin.right;
+        const height = 2000 - margin.top - margin.bottom;
+
+        // Create SVG
+        const svg = d3.select("#chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Create tooltip
+        const tooltip = d3.select(".tooltip");
+
+        // Create Sankey generator
+        const sankey = d3.sankey()
+            .nodeId(d => d.id)
+            .nodeWidth(20)
+            .nodePadding(15)
+            .extent([[0, 0], [width, height]])
+            .nodeSort((a, b) => {
+                // First sort by layer
+                if (a.layer !== b.layer) return a.layer - b.layer;
+                // Within same layer, sort by ID to maintain order
+                return a.id - b.id;
+            });
+
+        // Generate the Sankey diagram
+        const graph = sankey({
+            nodes: data.nodes.map(d => Object.assign({}, d)),
+            links: data.links.map(d => Object.assign({}, d))
+        });
+
+        // Manually override x positions to force proper column alignment
+        const columnWidth = width / 5;
+        graph.nodes.forEach(node => {
+            if (node.layer === 0) {
+                // States - leftmost
+                node.x0 = 0;
+                node.x1 = 20;
+            } else if (node.layer === 1) {
+                // Composite bar (Withdrew, Active in Match Matched to PGY1, Active & Unmatched)
+                node.x0 = columnWidth * 1.5;
+                node.x1 = columnWidth * 1.5 + 20;
+            } else if (node.layer === 2) {
+                // PGY1 Positions
+                node.x0 = columnWidth * 2.5;
+                node.x1 = columnWidth * 2.5 + 20;
+            } else if (node.layer === 3) {
+                // Filled/Unfilled
+                node.x0 = columnWidth * 3.5;
+                node.x1 = columnWidth * 3.5 + 20;
+            } else if (node.layer === 4) {
+                // Position types
+                node.x0 = columnWidth * 4.5;
+                node.x1 = columnWidth * 4.5 + 20;
+            }
+        });
+        
+        // Update sankey to recalculate link paths with new x positions
+        sankey.update(graph);
+
+        // Draw links
+        svg.append("g")
+            .selectAll("path")
+            .data(graph.links)
+            .join("path")
+            .attr("class", "link")
+            .attr("d", d3.sankeyLinkHorizontal())
+            .attr("stroke-width", d => Math.max(1, d.width))
+            .style("stroke", d => d.color || getNodeColor(d.source))
+            .on("mouseover", function(event, d) {
+                tooltip
+                    .style("display", "block")
+                    .html(`
+                        <strong>${d.source.name} → ${d.target.name}</strong><br>
+                        Count: ${d.value.toLocaleString()}
+                    `);
+            })
+            .on("mousemove", function(event) {
+                tooltip
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 10) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.style("display", "none");
+            });
+
+        // Draw nodes
+        const node = svg.append("g")
+            .selectAll("g")
+            .data(graph.nodes)
+            .join("g")
+            .attr("class", "node")
+            .call(d3.drag()
+                .on("start", function(event, d) {
+                    d3.select(this).raise();
+                })
+                .on("drag", function(event, d) {
+                    // Allow both horizontal and vertical movement
+                    const newX = Math.max(0, Math.min(width - (d.x1 - d.x0), event.x));
+                    const newY = Math.max(0, Math.min(height - (d.y1 - d.y0), event.y));
+                    
+                    const nodeWidth = d.x1 - d.x0;
+                    const nodeHeight = d.y1 - d.y0;
+                    
+                    d.x0 = newX;
+                    d.x1 = newX + nodeWidth;
+                    d.y0 = newY;
+                    d.y1 = newY + nodeHeight;
+                    
+                    // Update node position
+                    d3.select(this).select("rect")
+                        .attr("x", d.x0)
+                        .attr("y", d.y0);
+                    
+                    d3.select(this).selectAll("text")
+                        .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
+                        .attr("y", d => (d.y1 + d.y0) / 2);
+                    
+                    // Recalculate sankey to update link positions
+                    sankey.update(graph);
+                    
+                    // Redraw all links with updated positions
+                    svg.selectAll(".link")
+                        .attr("d", d3.sankeyLinkHorizontal());
+                })
+            );
+
+        node.append("rect")
+            .attr("x", d => d.x0)
+            .attr("y", d => d.y0)
+            .attr("height", d => d.y1 - d.y0)
+            .attr("width", d => d.x1 - d.x0)
+            .attr("fill", d => getNodeColor(d))
+            .on("click", function(event, d) {
+                // Show school details for state nodes
+                if (d.layer === 0 && stateAggregates[d.name]) {
+                    const schools = stateAggregates[d.name].schools;
+                    const detailPanel = document.getElementById('stateDetail');
+                    const detailContent = document.getElementById('stateDetailContent');
+                    
+                    const stateWithdrew = stateAggregates[d.name].registered - stateAggregates[d.name].active;
+                    
+                    let html = `<h3>${d.name} - Schools</h3>`;
+                    html += `<div style="margin-bottom: 15px; padding: 10px; background: #e8f4f8; border-radius: 4px;">
+                        <strong>State Totals:</strong><br>
+                        Registered: ${stateAggregates[d.name].registered} | 
+                        Active: ${stateAggregates[d.name].active} | 
+                        <span style="color: #f39c12; font-weight: bold;">Withdrew: ${stateWithdrew}</span> | 
+                        <span style="color: #2ecc71; font-weight: bold;">Matched: ${stateAggregates[d.name].matched}</span> | 
+                        <span style="color: #e74c3c; font-weight: bold;">Unmatched: ${stateAggregates[d.name].unmatched}</span>
+                    </div>`;
+                    
+                    schools.forEach(school => {
+                        const schoolWithdrew = school.registered - school.active;
+                        html += `<div class="school-item">
+                            <div class="school-name">${school.school}</div>
+                            <div class="school-stats">
+                                <div class="stat-row"><span>Registered:</span><strong>${school.registered}</strong></div>
+                                <div class="stat-row"><span>Active:</span><strong>${school.active}</strong></div>
+                                <div class="stat-row"><span>Withdrew:</span><strong style="color: #f39c12">${schoolWithdrew}</strong></div>
+                                <div class="stat-row"><span>Matched:</span><strong style="color: #2ecc71">${school.matched}</strong></div>
+                                <div class="stat-row"><span>Unmatched:</span><strong style="color: #e74c3c">${school.unmatched}</strong></div>
+                            </div>
+                        </div>`;
+                    });
+                    
+                    detailContent.innerHTML = html;
+                    detailPanel.style.display = 'block';
+                }
+            })
+            .on("mouseover", function(event, d) {
+                let tooltipHtml = `<strong>${d.name}</strong><br>`;
+                
+                if (d.layer === 0 && stateAggregates[d.name]) {
+                    const stateWithdrew = stateAggregates[d.name].registered - stateAggregates[d.name].active;
+                    tooltipHtml += `Registered: ${stateAggregates[d.name].registered}<br>`;
+                    tooltipHtml += `Active: ${stateAggregates[d.name].active}<br>`;
+                    tooltipHtml += `<span style="color: #f39c12">Withdrew: ${stateWithdrew}</span><br>`;
+                    tooltipHtml += `<span style="color: #2ecc71">Matched: ${stateAggregates[d.name].matched}</span><br>`;
+                    tooltipHtml += `<span style="color: #e74c3c">Unmatched: ${stateAggregates[d.name].unmatched}</span><br>`;
+                    tooltipHtml += `<em>Click to see schools</em>`;
+                } else {
+                    tooltipHtml += `Count: ${d.value.toLocaleString()}`;
+                }
+                
+                tooltip.style("display", "block").html(tooltipHtml);
+            })
+            .on("mousemove", function(event) {
+                tooltip
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 10) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.style("display", "none");
+            });
+
+        // Add labels
+        node.append("text")
+            .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
+            .attr("y", d => (d.y1 + d.y0) / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
+            .text(d => d.name)
+            .style("font-size", "11px")
+            .style("font-weight", "500");
+
+        // Add values to labels
+        node.append("text")
+            .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
+            .attr("y", d => (d.y1 + d.y0) / 2)
+            .attr("dy", "1.5em")
+            .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
+            .text(d => d.value.toLocaleString())
+            .style("font-size", "10px")
+            .style("fill", "#666");
+    </script>
+</body>
+</html>
